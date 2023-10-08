@@ -9,6 +9,11 @@ const messagesErrors = {
   "string.email": "Field {#label} must be a valid email address.",
   "string.pattern.base": "Field {#label} must be in the format (XXX) XXX-XXXX.",
   "any.required": "missing required {#label} field",
+  "favorite.required": "missing field favorite",
+};
+
+const messagesErrorsFavorite = {
+  "any.required": "missing field favorite",
 };
 
 const contactSchema = new Schema(
@@ -52,7 +57,7 @@ export const contactAddSchema = Joi.object({
 
 export const updateStatusContactSchema = Joi.object({
   favorite: Joi.boolean().required(),
-});
+}).messages(messagesErrorsFavorite);
 
 const Contact = model("contact", contactSchema);
 
