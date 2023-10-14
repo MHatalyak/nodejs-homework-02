@@ -1,63 +1,64 @@
-import fs from "fs/promises";
-import path from "path";
-import uniqid from "uniqid";
+import { Schema, model } from "mongoose";
+import Joi from "joi";
 
-const contactPath = path.resolve("models", "contacts.json");
+import { handleSaveError, runValidatorsAtUpdate } from "./hooks.js";
 
-const updateContact = (contacts) =>
-  fs.writeFile(contactPath, JSON.stringify(contacts, null, 2));
-
-async function listContacts() {
-  const buffer = await fs.readFile(contactPath);
-  return JSON.parse(buffer);
-}
-
-async function getContactById(id) {
-  const contacts = await listContacts();
-  const result = contacts.find((contact) => contact.id === id);
-  return result || null;
-}
-
-async function addContact({ name, email, phone }) {
-  const contacts = await listContacts();
-  const newContact = {
-    id: uniqid(),
-    name,
-    email,
-    phone,
-  };
-  contacts.push(newContact);
-  await updateContact(contacts);
-  return newContact;
-}
-
-async function removeContact(id) {
-  const contacts = await listContacts();
-  const index = contacts.findIndex((contact) => contact.id === id);
-  if (index === -1) {
-    return null;
-  }
-
-  const [result] = contacts.splice(index, 1);
-  await updateContact(contacts);
-  return result;
-}
-
-async function updateContactById(id, { name, email, phone }) {
-  const contacts = await listContacts();
-  const index = contacts.findIndex((contact) => contact.id === id);
-  if (index === -1) {
-    return null;
-  }
-  contacts[index] = { id, name, email, phone };
-  await updateContact(contacts);
-  return contacts[index];
-}
-
-export default {
-  listContacts,
-  getContactById,
-  addContact,
-  removeContact,
-  updateContactById,
+const messagesErrors = {
+  "string.base": "Field {#label} must be a string.",
+  "string.empty": "Field {#label} cannot be empty.",
+  "string.email": "Field {#label} must be a valid email address.",
+  "string.pattern.base": "Field {#label} must be in the format (XXX) XXX-XXXX.",
+  "any.required": "missing required {#label} field",
+  "favorite.required": "missing field favorite",
 };
+
+const messagesErrorsFavorite = {
+  "any.required": "missing field favorite",
+};
+
+const contactSchema = new Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Set name for contact"],
+    },
+    email: {
+      type: String,
+    },
+    phone: {
+      type: String,
+    },
+    favorite: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { versionKey: false }
+);
+
+contactSchema.post("save", handleSaveError);
+
+contactSchema.pre("findOneAndUpdate", runValidatorsAtUpdate);
+
+contactSchema.post("findOneAndUpdate", handleSaveError);
+
+export const contactAddSchema = Joi.object({
+  name: Joi.string().required(),
+  email: Joi.string()
+    .required()
+    .email({ minDomainSegments: 2, tlds: { allow: ["com", "net", "org"] } }),
+  phone: Joi.string()
+    .required()
+    .pattern(new RegExp("^\\(\\d{3}\\) \\d{3}-\\d{4}$")),
+  favorite: Joi.boolean(),
+})
+  .unknown(false)
+  .messages(messagesErrors);
+
+export const updateStatusContactSchema = Joi.object({
+  favorite: Joi.boolean().required(),
+}).messages(messagesErrorsFavorite);
+
+const Contact = model("contact", contactSchema);
+
+export default Contact;
