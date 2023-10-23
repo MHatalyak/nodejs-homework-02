@@ -85,11 +85,11 @@ const logout = async (req, res) => {
 
 const avatarRestore = async (req, res) => {
   const { _id } = req.user;
-  const avatarURL = await resizeAndSaveAvatar(req.file.buffer, _id);
+  const avatar = await resizeAndSaveAvatar(req.file.buffer, _id);
 
-  await User.findByIdAndUpdate(_id, { avatarURL });
+  await User.findByIdAndUpdate(_id, { avatar });
 
-  res.status(200).json({ avatarURL });
+  res.status(200).json({ avatar });
 };
 
 export default {
