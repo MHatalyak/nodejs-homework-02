@@ -2,7 +2,12 @@ import express from "express";
 
 import authController from "../../controllers/auth-controller.js";
 
-import { authenticate, bodyChecker } from "../../middlewares/index.js";
+import {
+  authenticate,
+  bodyChecker,
+  uploadAvatar,
+  resizeAndSaveAvatar,
+} from "../../middlewares/index.js";
 
 import { validator } from "../../decorators/index.js";
 
@@ -26,4 +31,10 @@ authRouter.get("/current", authenticate, authController.current);
 
 authRouter.post("/logout", authenticate, authController.logout);
 
+authRouter.patch(
+  "/avatars",
+  authenticate,
+  uploadAvatar.single("avatar"),
+  authController.avatarRestore
+);
 export default authRouter;
